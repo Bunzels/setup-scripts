@@ -8,11 +8,11 @@ mkdir -p Scripts
 cd Scripts
 
 # Download scripts to their proper filenames
-wget -q --header="Authorization: Bearer wzf68i5wkX" -O DeerNET.sh https://dn.bunzserv.com/terminal/scripts/DeerNET.sh
+wget -q -O DeerNET.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/scripts/DeerNET.sh
 sed -i 's/\r$//' DeerNET.sh
-wget -q --header="Authorization: Bearer wzf68i5wkX" -O Startup.sh https://dn.bunzserv.com/terminal/scripts/Startup.sh
+wget -q -O Startup.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/scripts/Startup.sh
 sed -i 's/\r$//' Startup.sh
-wget -q --header="Authorization: Bearer wzf68i5wkX" -O Menu.sh https://dn.bunzserv.com/terminal/scripts/Menu.sh
+wget -q -O Menu.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/scripts/Menu.sh
 sed -i 's/\r$//' Menu.sh
 
 # Make them executable
@@ -20,9 +20,9 @@ chmod +x DeerNET.sh Startup.sh Menu.sh
 
 cd /home/administrator/Downloads
 
-wget -q --header="Authorization: Bearer wzf68i5wkX" -O RustDeskSetup.sh https://dn.bunzserv.com/terminal/scripts/RustDeskSetup.sh
+wget -q -O RustDeskSetup.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/scripts/RustDeskSetup.sh
 sed -i 's/\r$//' RustDeskSetup.sh
-wget -q --header="Authorization: Bearer wzf68i5wkX" -O Network.sh https://dn.bunzserv.com/terminal/setup/network.sh
+wget -q -O Network.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/network.sh
 sed -i 's/\r$//' RustDeskSetup.sh
 
 chmod +x RustDeskSetup.sh Network.sh

@@ -51,35 +51,35 @@ fi
 #apt purge -y rustdesk
 #rm -rf /root/.config/rustdesk /home/*/.config/rustdesk
 
-wget -qO /tmp/software.sh --header="Authorization: Bearer wzf68i5wkX" https://dn.bunzserv.com/terminal/setup/software.sh
+wget -qO /tmp/software.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/software.sh
 sed -i 's/\r$//' /tmp/software.sh
 bash /tmp/software.sh
 rm /tmp/software.sh
 
 clear
 
-wget -qO /tmp/user.sh --header="Authorization: Bearer wzf68i5wkX" https://dn.bunzserv.com/terminal/setup/user.sh
+wget -qO /tmp/user.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/user.sh
 sed -i 's/\r$//' /tmp/user.sh
 bash /tmp/user.sh
 rm /tmp/user.sh
 
 clear
 
-wget -qO /tmp/scripts.sh --header="Authorization: Bearer wzf68i5wkX" https://dn.bunzserv.com/terminal/setup/scripts.sh
+wget -qO /tmp/scripts.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/scripts.sh
 sed -i 's/\r$//' /tmp/scripts.sh
 bash /tmp/scripts.sh
 rm /tmp/scripts.sh
 
 clear
 
-wget -qO /tmp/ui.sh --header="Authorization: Bearer wzf68i5wkX" https://dn.bunzserv.com/terminal/setup/ui.sh
+wget -qO /tmp/ui.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/ui.sh
 sed -i 's/\r$//' /tmp/ui.sh
 bash /tmp/ui.sh
 rm /tmp/ui.sh
 
 clear
 
-wget -qO /tmp/network.sh --header="Authorization: Bearer wzf68i5wkX" https://dn.bunzserv.com/terminal/setup/network.sh
+wget -qO /tmp/network.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/network.sh
 sed -i 's/\r$//' /tmp/network.sh
 bash /tmp/network.sh
 rm /tmp/network.sh
