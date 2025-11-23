@@ -10,8 +10,8 @@ if ! [[ "$LAST_OCTET" =~ ^[0-9]+$ ]] || [ "$LAST_OCTET" -lt 1 ] || [ "$LAST_OCTE
 fi
 
 IP_ADDR="192.168.1.$LAST_OCTET"
-GATEWAY="192.168.1.1"
-DNS="1.1.1.1"
+GATEWAY="192.168.1.99"
+DNS="192.168.1.99"
 echo "➡️  Setting static IP to $IP_ADDR"
 
 # Detect primary active interface
