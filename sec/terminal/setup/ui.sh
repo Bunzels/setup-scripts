@@ -159,11 +159,19 @@ EOF
     chown -R "$(basename "$target_home")":"$(basename "$target_home")" "$target_home/.config/autostart" 2>/dev/null || true
 }
 
-# For current user
-make_autostart_numlock "$HOME"
+# Autostart for kiosk user:
+KIOSK_HOME="/home/kiosk"
+mkdir -p "$KIOSK_HOME/.config/autostart"
 
-# For kiosk user
-make_autostart_numlock "/home/kiosk"
+cat <<EOF > "$KIOSK_HOME/.config/autostart/numlock.desktop"
+[Desktop Entry]
+Type=Application
+Exec=numlockx on
+Name=NumLock On
+X-GNOME-Autostart-enabled=true
+EOF
+
+chown -R kiosk:kiosk "$KIOSK_HOME/.config"
 
 echo "✅ NumLock enabled for all Cinnamon sessions"
 echo "🎉 Setup complete."
