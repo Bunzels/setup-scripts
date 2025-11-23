@@ -1,0 +1,126 @@
+### Force auto-install for Debian 13+
+d-i auto-install/enable boolean true
+d-i anna/choose_modules string network-console,auto-install
+d-i debconf/priority string critical
+d-i preseed/interactive boolean false
+d-i preseed/url-checksum string skip
+
+### Locale and keyboard
+d-i debian-installer/language string en
+d-i debian-installer/country string US
+d-i debian-installer/locale string en_US.UTF-8
+d-i keyboard-configuration/xkb-keymap select us
+
+### Network setup (DHCP)
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string debian
+d-i netcfg/get_domain string local
+d-i netcfg/disable_autoconfig boolean false
+d-i netcfg/dhcp_timeout string 60
+
+### Time zone and clock
+d-i clock-setup/utc boolean true
+d-i time/zone string America/Chicago
+d-i clock-setup/ntp boolean true
+
+### User creation
+d-i passwd/root-login boolean false
+d-i passwd/make-user boolean true
+d-i passwd/user-fullname string temp
+d-i passwd/username string temp
+d-i passwd/user-password password temp
+d-i passwd/user-password-again password temp
+d-i user-setup/allow-password-weak boolean true
+
+### Automatically detect first real disk and fully automate partitioning
+d-i preseed/early_command string \
+  DISK=$(list-devices disk | head -n1); \
+  echo "Detected disk: $DISK"; \
+  debconf-set partman-auto/disk "$DISK"
+
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+# accept removal of old LVM/MD data if present
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-md/device_remove_md boolean true
+# confirm every destructive action
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-auto/confirm boolean true
+d-i partman/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+### Mirror selection
+d-i mirror/protocol string http
+d-i mirror/http/hostname string deb.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+
+### Apt setup
+d-i apt-setup/use_mirror boolean true
+d-i apt-setup/non-free boolean true
+d-i apt-setup/contrib boolean true
+d-i apt-setup/enable-source-repositories boolean false
+d-i apt-setup/services-select multiselect security, updates
+
+### Package selection
+tasksel tasksel/first multiselect cinnamon-desktop, ssh-server, standard
+d-i pkgsel/include string
+d-i pkgsel/upgrade select safe-upgrade
+popularity-contest popularity-contest/participate boolean false
+
+### Bootloader
+# Install GRUB normally on the first detected disk
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/with_other_os boolean true
+d-i grub-installer/bootdev string /dev/vda
+d-i grub-installer/skip boolean false
+d-i grub-installer/confirm boolean true
+
+### Post-install: queue first-boot setup (systemd-safe for preseed parser)
+d-i preseed/late_command string \
+  BOOTDISK=$(list-devices disk | head -n1); \
+  echo "grub-installer/bootdev $BOOTDISK" > /target/root/bootdev.preseed; \
+  mkdir -p /target/root; \
+  echo '#!/bin/bash' > /target/root/firstboot.sh; \
+  echo 'set -euo pipefail' >> /target/root/firstboot.sh; \
+  echo '# Wait for network before continuing' >> /target/root/firstboot.sh; \
+  echo 'for i in {1..30}; do ping -c1 1.1.1.1 &>/dev/null && break; sleep 5; done' >> /target/root/firstboot.sh; \
+  echo 'AUTO_IP=192.168.1.150; export AUTO_IP' >> /target/root/firstboot.sh; \
+  echo 'wget --no-check-certificate -qO /root/secrets.sh --header="Authorization: Bearer wzf68i5wkX" https://dn.bunzserv.com/sec/terminal/setup/secrets.sh' >> /target/root/firstboot.sh; \
+  echo 'chmod 600 /root/secrets.sh; source /root/secrets.sh' >> /target/root/firstboot.sh; \
+  echo 'if [ -n "${ROOT_HASH:-}" ]; then echo "root:${ROOT_HASH}" | chpasswd -e; fi' >> /target/root/firstboot.sh; \
+  echo 'ADMIN_USER="${ADMIN_USER:-administrator}"' >> /target/root/firstboot.sh; \
+  echo 'if ! id "$ADMIN_USER" &>/dev/null; then useradd -m -s /bin/bash "$ADMIN_USER"; fi' >> /target/root/firstboot.sh; \
+  echo 'if [ -n "${ADMIN_HASH:-}" ]; then echo "${ADMIN_USER}:${ADMIN_HASH}" | chpasswd -e; fi' >> /target/root/firstboot.sh; \
+  echo 'printf "%s ALL=(ALL) NOPASSWD:ALL\n" "$ADMIN_USER" > /etc/sudoers.d/010_${ADMIN_USER}_nopasswd' >> /target/root/firstboot.sh; \
+  echo 'chmod 440 /etc/sudoers.d/010_${ADMIN_USER}_nopasswd' >> /target/root/firstboot.sh; \
+  echo 'shred -u /root/secrets.sh || rm -f /root/secrets.sh || true' >> /target/root/firstboot.sh; \
+  echo 'wget --no-check-certificate -qO /root/setup.sh --header="Authorization: Bearer wzf68i5wkX" https://dn.bunzserv.com/sec/terminal/setup/setup.sh' >> /target/root/firstboot.sh; \
+  echo 'sed -i "s/\r$//" /root/setup.sh; chmod +x /root/setup.sh' >> /target/root/firstboot.sh; \
+  echo 'if [ "${AUTO_IP}" != "dhcp" ]; then echo "${AUTO_IP##*.}" | bash /root/setup.sh > /root/setup.log 2>&1; else bash /root/setup.sh > /root/setup.log 2>&1; fi' >> /target/root/firstboot.sh; \
+  echo 'userdel -r temp || true' >> /target/root/firstboot.sh; \
+  echo 'systemctl disable firstboot.service; rm -f /etc/systemd/system/firstboot.service' >> /target/root/firstboot.sh; \
+  chmod +x /target/root/firstboot.sh; \
+  echo '[Unit]' > /target/etc/systemd/system/firstboot.service; \
+  echo 'Description=Run first boot setup once' >> /target/etc/systemd/system/firstboot.service; \
+  echo 'After=network-online.target' >> /target/etc/systemd/system/firstboot.service; \
+  echo 'Wants=network-online.target' >> /target/etc/systemd/system/firstboot.service; \
+  echo '[Service]' >> /target/etc/systemd/system/firstboot.service; \
+  echo 'Type=oneshot' >> /target/etc/systemd/system/firstboot.service; \
+  echo 'ExecStart=/root/firstboot.sh' >> /target/etc/systemd/system/firstboot.service; \
+  echo 'RemainAfterExit=no' >> /target/etc/systemd/system/firstboot.service; \
+  echo '[Install]' >> /target/etc/systemd/system/firstboot.service; \
+  echo 'WantedBy=multi-user.target' >> /target/etc/systemd/system/firstboot.service; \
+  in-target systemctl enable firstboot.service
+
+
+### Finish installation automatically
+d-i finish-install/keep-consoles boolean true
+d-i finish-install/reboot_in_progress note
+d-i debian-installer/exit/halt boolean false
+d-i debian-installer/exit/poweroff boolean false
+d-i debian-installer/exit/reboot boolean true
+
