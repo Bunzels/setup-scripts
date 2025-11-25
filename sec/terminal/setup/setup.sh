@@ -79,12 +79,12 @@ rm /tmp/ui.sh
 
 clear
 
-# wget -qO /tmp/network.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/network.sh
-# sed -i 's/\r$//' /tmp/network.sh
-# bash /tmp/network.sh
-# rm /tmp/network.sh
+wget -qO /tmp/network.sh https://raw.githubusercontent.com/Bunzels/setup-scripts/main/sec/terminal/setup/network.sh
+sed -i 's/\r$//' /tmp/network.sh
+bash /tmp/network.sh
+rm /tmp/network.sh
 
-# clear
+clear
 
 rm -- "$0"
 
