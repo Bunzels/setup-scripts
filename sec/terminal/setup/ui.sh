@@ -83,7 +83,6 @@ fi
 
 echo "✅ NumLock enabled at LightDM login screen."
 
-# Cinnamon session autostart
 mkdir -p "$USER_HOME/.config/autostart"
 
 cat <<EOF > "$USER_HOME/.config/autostart/numlock.desktop"
@@ -94,14 +93,14 @@ Name=NumLock On
 X-GNOME-Autostart-enabled=true
 EOF
 
-chown -R kiosk:kiosk "$USER_HOME/.config"
+# FIX OWNERSHIP OF ENTIRE HOME PATH FIRST
+chown -R kiosk:kiosk /home/kiosk
 
 echo "✅ NumLock enabled inside Cinnamon sessions."
 
 
 # =====================================================
-# CINNAMON + GNOME POWER/SCREENSAVER + KEYBINDINGS
-# Using dconf compiled backend (NO dbus needed)
+# CINNAMON + GNOME POWER/LOCK SETTINGS (dconf compile)
 # =====================================================
 
 echo "🔧 Applying Cinnamon/Power/Lock configuration..."
@@ -111,9 +110,11 @@ KIOSK_DCONF_DIR="$KIOSK_DCONF_BASE/user.d"
 
 mkdir -p "$KIOSK_DCONF_DIR"
 
-# Ensure kiosk has proper ownership before writing files
-chown -R kiosk:kiosk "$KIOSK_DCONF_BASE"
+# FIX OWNERSHIP AGAIN – ESSENTIAL!
+chown -R kiosk:kiosk /home/kiosk/.config
+chown -R kiosk:kiosk /home/kiosk/.config/dconf
 
+# Write settings
 cat <<'EOF' > "$KIOSK_DCONF_DIR/00-kiosk-settings"
 [org/cinnamon/desktop/screensaver]
 lock-enabled=false
@@ -144,14 +145,14 @@ sleep-inactive-ac-type='nothing'
 sleep-inactive-battery-type='nothing'
 EOF
 
-# Compile the dconf DB as kiosk user (fixes permission denied)
+# FINAL FIX: run dconf compile as kiosk
 sudo -u kiosk dconf compile "$KIOSK_DCONF_BASE/user" "$KIOSK_DCONF_DIR"
 
-echo "✅ Cinnamon & GNOME dconf configuration applied."
+echo "✅ dconf database compiled successfully."
 
 
 # =====================================================
-# DISABLE LOCK ON SUSPEND (AccountsService + logind)
+# DISABLE LOCK ON SUSPEND (AccountsService)
 # =====================================================
 
 echo "🔧 Disabling lock-on-suspend..."
@@ -165,13 +166,6 @@ LockOnSuspend=false
 EOF
 
 chmod 644 /var/lib/AccountsService/users/kiosk
-
-# Disable systemd lock behavior
-mkdir -p /etc/systemd/system/systemd-logind.service.d
-cat <<EOF >/etc/systemd/system/systemd-logind.service.d/nolock.conf
-[Service]
-Environment="SYSTEMD_LOCK_LOCKS=0"
-EOF
 
 echo "✅ Lock on suspend disabled."
 
