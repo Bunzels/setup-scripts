@@ -180,13 +180,13 @@ systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target 
 
 echo "✅ System sleep disabled."
 
+
 # =====================================================
 # NIGHTLY REBOOT AT 2 AM
 # =====================================================
 
 echo "🔧 Adding nightly reboot cron job..."
 
-# Create /etc/cron.d entry
 cat <<EOF >/etc/cron.d/kiosk-reboot
 # Reboot every day at 2:00 AM
 0 2 * * * root /sbin/shutdown -r now
@@ -196,8 +196,39 @@ chmod 644 /etc/cron.d/kiosk-reboot
 
 echo "✅ Nightly 2 AM reboot scheduled."
 
+
+# =====================================================
+# POLKIT RULE — ALLOW KIOSK USER TO REBOOT/SHUTDOWN
+# =====================================================
+
+echo "🔧 Adding polkit rule to allow kiosk user reboot/shutdown..."
+
+cat <<'EOF' >/etc/polkit-1/rules.d/49-kiosk-reboot.rules
+polkit.addRule(function(action, subject) {
+    if (subject.user == "kiosk" || subject.isInGroup("kiosk")) {
+
+        // Allow reboot
+        if (action.id == "org.freedesktop.login1.reboot" ||
+            action.id == "org.freedesktop.login1.reboot-multiple-sessions") {
+            return polkit.Result.YES;
+        }
+
+        // Allow shutdown
+        if (action.id == "org.freedesktop.login1.power-off" ||
+            action.id == "org.freedesktop.login1.power-off-multiple-sessions") {
+            return polkit.Result.YES;
+        }
+    }
+});
+EOF
+
+chmod 644 /etc/polkit-1/rules.d/49-kiosk-reboot.rules
+
+echo "✅ Kiosk user may now reboot/shutdown from UI menu."
+
+
 # =====================================================
 # DONE
 # =====================================================
 
-echo "🎉 Setup complete — all lock + sleep + kiosk settings applied."
+echo "🎉 Setup complete — all lock + sleep + reboot privileges configured."
