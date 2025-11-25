@@ -198,24 +198,24 @@ echo "✅ Nightly 2 AM reboot scheduled."
 
 
 # =====================================================
-# POLKIT RULE — ALLOW KIOSK USER TO REBOOT/SHUTDOWN
+# POLKIT RULE — FORCE ALLOW REBOOT/SHUTDOWN FOR KIOSK
 # =====================================================
 
-echo "🔧 Adding polkit rule to allow kiosk user reboot/shutdown..."
+echo "🔧 Adding polkit override for reboot/shutdown..."
 
 cat <<'EOF' >/etc/polkit-1/rules.d/49-kiosk-reboot.rules
 polkit.addRule(function(action, subject) {
-    if (subject.user == "kiosk" || subject.isInGroup("kiosk")) {
 
-        // Allow reboot
-        if (action.id == "org.freedesktop.login1.reboot" ||
-            action.id == "org.freedesktop.login1.reboot-multiple-sessions") {
-            return polkit.Result.YES;
-        }
+    if (subject.user == "kiosk") {
 
-        // Allow shutdown
-        if (action.id == "org.freedesktop.login1.power-off" ||
-            action.id == "org.freedesktop.login1.power-off-multiple-sessions") {
+        if (
+            action.id == "org.freedesktop.login1.reboot" ||
+            action.id == "org.freedesktop.login1.reboot-multiple-sessions" ||
+            action.id == "org.freedesktop.login1.reboot-ignore-inhibit" ||
+            action.id == "org.freedesktop.login1.power-off" ||
+            action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
+            action.id == "org.freedesktop.login1.power-off-ignore-inhibit"
+        ) {
             return polkit.Result.YES;
         }
     }
@@ -224,7 +224,7 @@ EOF
 
 chmod 644 /etc/polkit-1/rules.d/49-kiosk-reboot.rules
 
-echo "✅ Kiosk user may now reboot/shutdown from UI menu."
+echo "✅ Kiosk user can reboot/shutdown from the menu."
 
 
 # =====================================================
