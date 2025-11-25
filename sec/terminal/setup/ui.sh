@@ -33,7 +33,7 @@ disable_autostart "blueman"
 disable_autostart "print-applet"
 disable_autostart "system-config-printer-applet"
 
-echo "✅ Blueman and Print Queue applets disabled for user $USER."
+echo "✅ Blueman and Print Queue applets disabled."
 
 
 # =====================================================
@@ -101,17 +101,16 @@ echo "✅ NumLock enabled inside Cinnamon sessions."
 
 # =====================================================
 # CINNAMON POWER / SCREENSAVER / SLEEP / SUPER KEY
-# Using dconf *compiled database* — works without session
+# via compiled dconf db (no session needed)
 # =====================================================
 
-echo "🔧 Applying Cinnamon configuration (dconf db compile)..."
+echo "🔧 Applying Cinnamon configuration..."
 
 KIOSK_DCONF_BASE="/home/kiosk/.config/dconf"
 KIOSK_DCONF_DIR="$KIOSK_DCONF_BASE/user.d"
 
 mkdir -p "$KIOSK_DCONF_DIR"
 
-# Write settings file
 cat <<'EOF' > "$KIOSK_DCONF_DIR/00-kiosk-settings"
 [org/cinnamon/desktop/screensaver]
 lock-enabled=false
@@ -133,21 +132,41 @@ idle-delay=900
 
 [org/cinnamon/desktop/keybindings/media-keys]
 home=['']
+
+[org/gnome/desktop/screensaver]
+lock-enabled=false
+ubuntu-lock-on-suspend=false
+
+[org/gnome/settings-daemon/plugins/power]
+sleep-inactive-ac-type='nothing'
+sleep-inactive-battery-type='nothing'
 EOF
 
-# Compile dconf database manually
 sudo -u kiosk dconf compile "$KIOSK_DCONF_BASE/user" "$KIOSK_DCONF_DIR"
 
-echo "✅ Cinnamon settings applied (no D-Bus required)."
-echo "   – Screensaver: 15 minutes"
-echo "   – Screen off: 30 minutes"
-echo "   – Lock disabled"
-echo "   – Sleep disabled"
-echo "   – Windows/Super key disabled"
+echo "✅ Cinnamon & GNOME config applied."
 
 
 # =====================================================
-# DONE
+# DISABLE LOCK ON SUSPEND (SYSTEMD + ACCOUNTSSERVICE)
 # =====================================================
 
-echo "🎉 Setup complete."
+echo "🔧 Disabling lock on suspend (systemd & accountsservice)..."
+
+# Systemd inhibit lock on suspend
+mkdir -p /etc/systemd/system/systemd-logind.service.d
+cat <<EOF >/etc/systemd/system/systemd-logind.service.d/nolock.conf
+[Service]
+Environment="SYSTEMD_LOCK_LOCKS=0"
+EOF
+
+# AccountsService flag
+mkdir -p /var/lib/AccountsService/users
+cat <<EOF >/var/lib/AccountsService/users/kiosk
+[User]
+SystemAccount=false
+XSession=cinnamon
+LockOnSuspend=false
+EOF
+
+chmod 644 /var/lib/AccountsServi
