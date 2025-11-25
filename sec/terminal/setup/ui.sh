@@ -83,7 +83,7 @@ fi
 
 echo "✅ NumLock enabled at LightDM login screen."
 
-# Cinnamon session NumLock autostart
+# Cinnamon session autostart
 mkdir -p "$USER_HOME/.config/autostart"
 
 cat <<EOF > "$USER_HOME/.config/autostart/numlock.desktop"
@@ -100,16 +100,19 @@ echo "✅ NumLock enabled inside Cinnamon sessions."
 
 
 # =====================================================
-# CINNAMON POWER / SCREENSAVER / SLEEP / SUPER KEY
-# via compiled dconf db (no session needed)
+# CINNAMON + GNOME POWER/SCREENSAVER + KEYBINDINGS
+# Using dconf compiled backend (NO dbus needed)
 # =====================================================
 
-echo "🔧 Applying Cinnamon configuration..."
+echo "🔧 Applying Cinnamon/Power/Lock configuration..."
 
 KIOSK_DCONF_BASE="/home/kiosk/.config/dconf"
 KIOSK_DCONF_DIR="$KIOSK_DCONF_BASE/user.d"
 
 mkdir -p "$KIOSK_DCONF_DIR"
+
+# Ensure kiosk has proper ownership before writing files
+chown -R kiosk:kiosk "$KIOSK_DCONF_BASE"
 
 cat <<'EOF' > "$KIOSK_DCONF_DIR/00-kiosk-settings"
 [org/cinnamon/desktop/screensaver]
@@ -135,32 +138,24 @@ home=['']
 
 [org/gnome/desktop/screensaver]
 lock-enabled=false
-ubuntu-lock-on-suspend=false
 
 [org/gnome/settings-daemon/plugins/power]
 sleep-inactive-ac-type='nothing'
 sleep-inactive-battery-type='nothing'
 EOF
 
+# Compile the dconf DB as kiosk user (fixes permission denied)
 sudo -u kiosk dconf compile "$KIOSK_DCONF_BASE/user" "$KIOSK_DCONF_DIR"
 
-echo "✅ Cinnamon & GNOME config applied."
+echo "✅ Cinnamon & GNOME dconf configuration applied."
 
 
 # =====================================================
-# DISABLE LOCK ON SUSPEND (SYSTEMD + ACCOUNTSSERVICE)
+# DISABLE LOCK ON SUSPEND (AccountsService + logind)
 # =====================================================
 
-echo "🔧 Disabling lock on suspend (systemd & accountsservice)..."
+echo "🔧 Disabling lock-on-suspend..."
 
-# Systemd inhibit lock on suspend
-mkdir -p /etc/systemd/system/systemd-logind.service.d
-cat <<EOF >/etc/systemd/system/systemd-logind.service.d/nolock.conf
-[Service]
-Environment="SYSTEMD_LOCK_LOCKS=0"
-EOF
-
-# AccountsService flag
 mkdir -p /var/lib/AccountsService/users
 cat <<EOF >/var/lib/AccountsService/users/kiosk
 [User]
@@ -169,4 +164,31 @@ XSession=cinnamon
 LockOnSuspend=false
 EOF
 
-chmod 644 /var/lib/AccountsServi
+chmod 644 /var/lib/AccountsService/users/kiosk
+
+# Disable systemd lock behavior
+mkdir -p /etc/systemd/system/systemd-logind.service.d
+cat <<EOF >/etc/systemd/system/systemd-logind.service.d/nolock.conf
+[Service]
+Environment="SYSTEMD_LOCK_LOCKS=0"
+EOF
+
+echo "✅ Lock on suspend disabled."
+
+
+# =====================================================
+# DISABLE ALL SYSTEM SLEEP
+# =====================================================
+
+echo "🔧 Disabling all system sleep modes..."
+
+systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target || true
+
+echo "✅ System sleep disabled."
+
+
+# =====================================================
+# DONE
+# =====================================================
+
+echo "🎉 Setup complete — all lock + sleep + kiosk settings applied."
