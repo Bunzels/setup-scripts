@@ -180,6 +180,21 @@ systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target 
 
 echo "✅ System sleep disabled."
 
+# =====================================================
+# NIGHTLY REBOOT AT 2 AM
+# =====================================================
+
+echo "🔧 Adding nightly reboot cron job..."
+
+# Create /etc/cron.d entry
+cat <<EOF >/etc/cron.d/kiosk-reboot
+# Reboot every day at 2:00 AM
+0 2 * * * root /sbin/shutdown -r now
+EOF
+
+chmod 644 /etc/cron.d/kiosk-reboot
+
+echo "✅ Nightly 2 AM reboot scheduled."
 
 # =====================================================
 # DONE
