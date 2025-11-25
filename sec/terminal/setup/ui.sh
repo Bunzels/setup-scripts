@@ -1,5 +1,10 @@
+#!/bin/bash
 set -eo pipefail
 export PATH=$PATH:/sbin:/usr/sbin
+
+# =====================================================
+# DISABLE BLUEMAN + PRINT QUEUE APPLETS
+# =====================================================
 
 USER_AUTOSTART="$HOME/.config/autostart"
 SYSTEM_AUTOSTART="/etc/xdg/autostart"
@@ -25,15 +30,15 @@ disable_autostart() {
 }
 
 disable_autostart "blueman"
-disable_autostart "print-applet"   # typical name
-disable_autostart "system-config-printer-applet"  # fallback name
+disable_autostart "print-applet"
+disable_autostart "system-config-printer-applet"
 
 echo "✅ Blueman and Print Queue applets disabled for user $USER."
 
 
-# -----------------------------------------------------
+# =====================================================
 # KIOSK DESKTOP SHORTCUT
-# -----------------------------------------------------
+# =====================================================
 
 USER_HOME="/home/kiosk"
 DESKTOP_DIR="$USER_HOME/Desktop"
@@ -56,20 +61,18 @@ EOF
 chmod +x "$SHORTCUT_FILE"
 chown kiosk:kiosk "$SHORTCUT_FILE"
 
-echo "✅ DeerNET desktop shortcut created at $SHORTCUT_FILE (Mint-compatible format)"
+echo "✅ DeerNET desktop shortcut created."
 
 
-# -----------------------------------------------------
-# NUMLOCK ENABLED BY DEFAULT (LightDM + Cinnamon)
-# -----------------------------------------------------
+# =====================================================
+# NUMLOCK ENABLED (LightDM + Cinnamon)
+# =====================================================
 
-echo "🔧 Enabling NumLock by default..."
+echo "🔧 Enabling NumLock..."
 
-# 1. Install numlockx
 apt-get update -y
 apt-get install -y numlockx
 
-# 2. Enable NumLock at LightDM login screen
 LIGHTDM_CONF="/etc/lightdm/lightdm.conf"
 if ! grep -q "greeter-setup-script" "$LIGHTDM_CONF" 2>/dev/null; then
     echo "[Seat:*]" >> "$LIGHTDM_CONF"
@@ -78,15 +81,12 @@ else
     sed -i 's|^greeter-setup-script=.*|greeter-setup-script=/usr/bin/numlockx on|' "$LIGHTDM_CONF"
 fi
 
-echo "✅ NumLock enabled at login screen"
+echo "✅ NumLock enabled at LightDM login screen."
 
-# 3. Enable NumLock for Cinnamon sessions (both the current user & kiosk user)
+# Cinnamon session NumLock autostart
+mkdir -p "$USER_HOME/.config/autostart"
 
-make_autostart_numlock() {
-    local target_home="$1"
-    mkdir -p "$target_home/.config/autostart"
-
-    cat <<EOF > "$target_home/.config/autostart/numlock.desktop"
+cat <<EOF > "$USER_HOME/.config/autostart/numlock.desktop"
 [Desktop Entry]
 Type=Application
 Exec=numlockx on
@@ -94,40 +94,25 @@ Name=NumLock On
 X-GNOME-Autostart-enabled=true
 EOF
 
-    chown -R "$(basename "$target_home")":"$(basename "$target_home")" "$target_home/.config/autostart" 2>/dev/null || true
-}
+chown -R kiosk:kiosk "$USER_HOME/.config"
 
-# Autostart for kiosk user:
-KIOSK_HOME="/home/kiosk"
-mkdir -p "$KIOSK_HOME/.config/autostart"
+echo "✅ NumLock enabled inside Cinnamon sessions."
 
-cat <<EOF > "$KIOSK_HOME/.config/autostart/numlock.desktop"
-[Desktop Entry]
-Type=Application
-Exec=numlockx on
-Name=NumLock On
-X-GNOME-Autostart-enabled=true
-EOF
 
-chown -R kiosk:kiosk "$KIOSK_HOME/.config"
+# =====================================================
+# CINNAMON POWER / SCREENSAVER / SLEEP / SUPER KEY
+# =====================================================
 
-# -----------------------------------------------------
-# CINNAMON POWER / SCREENSAVER CONFIG
-# -----------------------------------------------------
-
-KIOSK_HOME="/home/kiosk"
-KIOSK_DCONF_DIR="$KIOSK_HOME/.config/dconf"
+KIOSK_DCONF_DIR="$USER_HOME/.config/dconf"
 mkdir -p "$KIOSK_DCONF_DIR"
-DB_FILE="$KIOSK_DCONF_DIR/user"
 
-echo "🔧 Configuring power/screen settings for kiosk user..."
+echo "🔧 Configuring Cinnamon system settings..."
 
-# Generate dconf override script
 cat <<'EOF' > /tmp/kiosk_dconf.ini
 [org/cinnamon/desktop/screensaver]
 lock-enabled=false
 idle-activation-enabled=true
-idle-delay=900  # 900 sec = 15 min
+idle-delay=900
 
 [org/cinnamon/settings-daemon/plugins/power]
 sleep-inactive-ac-type='nothing'
@@ -136,33 +121,24 @@ sleep-inactive-battery-type='nothing'
 sleep-inactive-battery-timeout=0
 idle-dim-ac=false
 idle-dim-battery=false
-sleep-display-ac=1800      # 1800 sec = 30 min
+sleep-display-ac=1800
 sleep-display-battery=1800
 
 [org/cinnamon/desktop/session]
-idle-delay=900   # 15 min
+idle-delay=900
 
 [org/cinnamon/desktop/keybindings/media-keys]
-# Disable Windows/Super key opening menu
-home=['']  # Removes binding for opening menu (Super_L)
+home=['']
 EOF
 
-# Load settings into kiosk user's dconf DB
 sudo -u kiosk dconf load / < /tmp/kiosk_dconf.ini
 
-echo "✅ Screen timeout, screen off, lock disabled, and sleep disabled."
+echo "✅ Screen timeout, display off, no lock, no sleep configured."
+echo "✅ Windows key disabled from opening the Cinnamon menu."
 
 
-# -----------------------------------------------------
-# DISABLE CINNAMON START MENU ON WINDOWS/SUPER KEY
-# -----------------------------------------------------
+# =====================================================
+# DONE
+# =====================================================
 
-echo "🔧 Disabling Cinnamon menu from Super key..."
-
-sudo -u kiosk dconf write /org/cinnamon/desktop/keybindings/media-keys/home "['']"
-
-echo "✅ Windows key no longer opens the start menu."
-
-
-echo "✅ NumLock enabled for all Cinnamon sessions"
 echo "🎉 Setup complete."
