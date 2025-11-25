@@ -131,7 +131,7 @@ idle-delay=900
 home=['']
 EOF
 
-sudo -u kiosk dconf load / < /tmp/kiosk_dconf.ini
+sudo -u kiosk dbus-run-session -- dconf load / < /tmp/kiosk_dconf.ini
 
 echo "✅ Screen timeout, display off, no lock, no sleep configured."
 echo "✅ Windows key disabled from opening the Cinnamon menu."
