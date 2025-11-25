@@ -101,14 +101,18 @@ echo "✅ NumLock enabled inside Cinnamon sessions."
 
 # =====================================================
 # CINNAMON POWER / SCREENSAVER / SLEEP / SUPER KEY
+# Using dconf *compiled database* — works without session
 # =====================================================
 
-KIOSK_DCONF_DIR="$USER_HOME/.config/dconf"
+echo "🔧 Applying Cinnamon configuration (dconf db compile)..."
+
+KIOSK_DCONF_BASE="/home/kiosk/.config/dconf"
+KIOSK_DCONF_DIR="$KIOSK_DCONF_BASE/user.d"
+
 mkdir -p "$KIOSK_DCONF_DIR"
 
-echo "🔧 Configuring Cinnamon system settings..."
-
-cat <<'EOF' > /tmp/kiosk_dconf.ini
+# Write settings file
+cat <<'EOF' > "$KIOSK_DCONF_DIR/00-kiosk-settings"
 [org/cinnamon/desktop/screensaver]
 lock-enabled=false
 idle-activation-enabled=true
@@ -131,10 +135,15 @@ idle-delay=900
 home=['']
 EOF
 
-sudo -u kiosk dbus-run-session -- dconf load / < /tmp/kiosk_dconf.ini
+# Compile dconf database manually
+sudo -u kiosk dconf compile "$KIOSK_DCONF_BASE/user" "$KIOSK_DCONF_DIR"
 
-echo "✅ Screen timeout, display off, no lock, no sleep configured."
-echo "✅ Windows key disabled from opening the Cinnamon menu."
+echo "✅ Cinnamon settings applied (no D-Bus required)."
+echo "   – Screensaver: 15 minutes"
+echo "   – Screen off: 30 minutes"
+echo "   – Lock disabled"
+echo "   – Sleep disabled"
+echo "   – Windows/Super key disabled"
 
 
 # =====================================================
