@@ -93,7 +93,6 @@ Name=NumLock On
 X-GNOME-Autostart-enabled=true
 EOF
 
-# FIX OWNERSHIP OF ENTIRE HOME PATH FIRST
 chown -R kiosk:kiosk /home/kiosk
 
 echo "✅ NumLock enabled inside Cinnamon sessions."
@@ -110,11 +109,9 @@ KIOSK_DCONF_DIR="$KIOSK_DCONF_BASE/user.d"
 
 mkdir -p "$KIOSK_DCONF_DIR"
 
-# FIX OWNERSHIP AGAIN – ESSENTIAL!
 chown -R kiosk:kiosk /home/kiosk/.config
 chown -R kiosk:kiosk /home/kiosk/.config/dconf
 
-# Write settings
 cat <<'EOF' > "$KIOSK_DCONF_DIR/00-kiosk-settings"
 [org/cinnamon/desktop/screensaver]
 lock-enabled=false
@@ -145,7 +142,6 @@ sleep-inactive-ac-type='nothing'
 sleep-inactive-battery-type='nothing'
 EOF
 
-# FINAL FIX: run dconf compile as kiosk
 sudo -u kiosk dconf compile "$KIOSK_DCONF_BASE/user" "$KIOSK_DCONF_DIR"
 
 echo "✅ dconf database compiled successfully."
@@ -228,7 +224,39 @@ echo "✅ Kiosk user can reboot/shutdown from the menu."
 
 
 # =====================================================
+# USB BLOCKING FOR KIOSK USER ONLY (POLKIT)
+# =====================================================
+
+echo "🔧 Blocking USB flash drives for kiosk user..."
+
+cat <<'EOF' >/etc/polkit-1/rules.d/60-kiosk-block-usb.rules
+polkit.addRule(function(action, subject) {
+
+    if (subject.user == "kiosk") {
+
+        // Block all filesystem mounts
+        if (action.id.indexOf("org.freedesktop.udisks2.filesystem-mount") === 0 ||
+            action.id.indexOf("org.freedesktop.udisks2.encrypted-unlock") === 0 ||
+            action.id.indexOf("org.freedesktop.udisks2.loop-setup") === 0) {
+            return polkit.Result.NO;
+        }
+
+        // Block MTP phones (Android, cameras)
+        if (action.id.indexOf("org.freedesktop.udisks2.eject-media") === 0 ||
+            action.id.indexOf("org.freedesktop.udisks2.eject-media-other-seat") === 0) {
+            return polkit.Result.NO;
+        }
+    }
+});
+EOF
+
+chmod 644 /etc/polkit-1/rules.d/60-kiosk-block-usb.rules
+
+echo "✅ USB flash drives blocked for kiosk user."
+
+
+# =====================================================
 # DONE
 # =====================================================
 
-echo "🎉 Setup complete — all lock + sleep + reboot privileges configured."
+echo "🎉 Setup complete — full kiosk lockdown, power control, and USB blocking applied."
